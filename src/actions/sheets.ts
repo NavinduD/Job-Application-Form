@@ -11,10 +11,19 @@ export async function appendToGoogleSheet(data: CVData) {
   try {
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
+    const base64EncodedServiceAccount =
+      process.env.BASE64_ENCODED_GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    if (!base64EncodedServiceAccount) {
+      throw new Error("Service account email is not configured");
+    }
+    const decodedServiceAccount = Buffer.from(
+      base64EncodedServiceAccount,
+      "base64"
+    ).toString("utf-8");
+
     const auth = new google.auth.GoogleAuth({
       credentials: {
-        client_email:
-          "metana-assignment@metana-assessment.iam.gserviceaccount.com",
+        client_email: decodedServiceAccount,
         private_key: privateKey,
       },
       scopes: [
