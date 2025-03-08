@@ -9,23 +9,17 @@ interface CVData extends ParsedCV {
 
 export async function appendToGoogleSheet(data: CVData) {
   try {
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-
-    const base64EncodedServiceAccount =
-      process.env.BASE64_ENCODED_GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    if (!base64EncodedServiceAccount) {
+    const base64EncodedCredentials = process.env.BASE64_GOOGLE_CREDENTIALS;
+    if (!base64EncodedCredentials) {
       throw new Error("Service account email is not configured");
     }
-    const decodedServiceAccount = Buffer.from(
-      base64EncodedServiceAccount,
+    const decodedCredentials = Buffer.from(
+      base64EncodedCredentials,
       "base64"
     ).toString("utf-8");
 
     const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: decodedServiceAccount,
-        private_key: privateKey,
-      },
+      credentials: JSON.parse(decodedCredentials),
       scopes: [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
