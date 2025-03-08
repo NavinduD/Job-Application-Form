@@ -15,6 +15,7 @@
     "@aws-sdk/s3-request-presigner": "^3.758.0",
     "@opentelemetry/api": "^1.9.0",
     "@react-email/components": "0.0.33",
+    "@ungap/with-resolvers": "^0.1.0",
     "ai": "^4.1.54",
     "googleapis": "^146.0.0",
     "html-pdf": "^3.0.1",
@@ -41,7 +42,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.2.1",
-    "react-email": "3.0.7",
+    "react-email": "^1.2.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

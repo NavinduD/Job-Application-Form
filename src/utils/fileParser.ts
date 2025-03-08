@@ -1,9 +1,12 @@
-import * as pdfjsLib from "pdfjs-dist";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import mammoth from "mammoth";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
+import { TextItem, TextMarkedContent } from "pdfjs-dist/types/src/display/api";
+import "@ungap/with-resolvers";
+// pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
 
 export async function parseFileContent(file: File): Promise<string> {
+  // @ts-expect-error: pdf.worker.min.mjs is not typed
+  await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs");
   // For PDF files
   if (file.type === "application/pdf") {
     const arrayBuffer = await file.arrayBuffer();
@@ -16,7 +19,9 @@ export async function parseFileContent(file: File): Promise<string> {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items
-          .map((item) => ("str" in item ? item.str : ""))
+          .map((item: TextItem | TextMarkedContent) =>
+            "str" in item ? item.str : ""
+          )
           .join(" ");
         fullText += pageText + "\n";
       }
