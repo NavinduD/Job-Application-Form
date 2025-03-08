@@ -13,7 +13,8 @@ export async function appendToGoogleSheet(data: CVData) {
 
     const auth = new google.auth.GoogleAuth({
       credentials: {
-        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        client_email:
+          "metana-assignment@metana-assessment.iam.gserviceaccount.com",
         private_key: privateKey,
       },
       scopes: [
