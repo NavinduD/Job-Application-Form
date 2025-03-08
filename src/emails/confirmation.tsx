@@ -72,7 +72,7 @@ const main = {
 };
 
 const container = {
-  margin: "0 auto",
+  margin: "0 10px",
   padding: "32px 40px",
   maxWidth: "580px",
   border: "1px solid #eaeaea",
