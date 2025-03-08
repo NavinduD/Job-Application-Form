@@ -18,7 +18,7 @@ export default function Home() {
     phone: "",
     filename: "",
   });
-  const [cvData, setCvData] = useState<any>();
+  const [cvData, setCvData] = useState<ParsedCV>();
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -88,11 +88,17 @@ export default function Home() {
         setFile(selectedFile);
         setError(null);
         setCurrentStep(4);
-      } catch (parseError: any) {
-        throw new Error(`Failed to parse file: ${parseError.message}`);
+      } catch (parseError: unknown) {
+        setError("Failed to parse file");
+        throw new Error(
+          `Failed to parse file: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
+        );
       }
-    } catch (err: any) {
-      setError("Failed to process file: " + err.message);
+    } catch (err: unknown) {
+      setError(
+        "Failed to process file: " +
+          (err instanceof Error ? err.message : "Unknown error")
+      );
       console.error("Processing error:", err);
       setCurrentStep(0);
     }
@@ -110,6 +116,10 @@ export default function Home() {
     setError(null);
 
     try {
+      if (!cvData) {
+        setError("CV data is not available");
+        return;
+      }
       const res = await submitFormData(formData, cvData);
       if (res !== "success") {
         setError("Failed to submit application");
@@ -124,17 +134,19 @@ export default function Home() {
         filename: "",
       });
       setFile(null);
+      setCurrentStep(0);
 
       setTimeout(() => {
         setSubmitSuccess(false);
       }, 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(
-        err.message || "An error occurred while submitting your application"
+        err instanceof Error
+          ? err.message
+          : "An error occurred while submitting your application"
       );
     } finally {
       setIsSubmitting(false);
-      setCurrentStep(0);
     }
   };
 

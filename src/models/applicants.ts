@@ -1,4 +1,3 @@
-import { time } from "console";
 import mongoose from "mongoose";
 
 const applicantSchema = new mongoose.Schema({

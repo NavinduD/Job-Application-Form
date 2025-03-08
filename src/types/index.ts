@@ -45,6 +45,6 @@ export interface ParsedCV {
 }
 
 export interface CVExtractionResult {
-  raw: any;
+  raw: ParsedCV;
   formatted: ParsedCV;
 }
