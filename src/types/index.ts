@@ -38,10 +38,12 @@ export interface ParsedCV {
   };
   education: string[];
   qualifications: string[];
-  projects: Array<{
-    name: string;
-    description: string;
-  }>;
+  projects: Array<Projects>;
+}
+
+export interface Projects {
+  name: string;
+  description: string;
 }
 
 export interface CVExtractionResult {

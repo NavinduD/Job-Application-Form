@@ -7,7 +7,7 @@ import { FiSend } from "react-icons/fi";
 import { FormInput } from "@/components/FormInput";
 import { FileUpload } from "@/components/FileUpload";
 import { StatusMessage } from "@/components/StatusMessage";
-import { FormData, ParsedCV } from "@/types";
+import { FormData, CVExtractionResult } from "@/types";
 import { extractCVSections } from "@/utils/cvParser";
 import { appendToSheet } from "@/services/googleSheets";
 
@@ -18,7 +18,7 @@ export default function Home() {
     phone: "",
     filename: "",
   });
-  const [cvData, setCvData] = useState<ParsedCV>();
+  const [cvData, setCvData] = useState<CVExtractionResult>();
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -73,18 +73,8 @@ export default function Home() {
         setCurrentStep(3);
 
         const extractedData = await extractCVSections(parsed);
-        const cvLink = `${process.env.NEXT_PUBLIC_CLOUDFLARE_URL}/${formData.filename}`;
 
-        setCvData(extractedData.raw);
-
-        await appendToSheet({
-          personalInfo: extractedData.formatted.personalInfo,
-          education: extractedData.formatted.education,
-          qualifications: extractedData.formatted.qualifications,
-          projects: extractedData.formatted.projects,
-          cvLink,
-        });
-
+        setCvData(extractedData);
         setFile(selectedFile);
         setError(null);
         setCurrentStep(4);
@@ -120,7 +110,17 @@ export default function Home() {
         setError("CV data is not available");
         return;
       }
-      const res = await submitFormData(formData, cvData);
+
+      const cvLink = `${process.env.NEXT_PUBLIC_CLOUDFLARE_URL}/${formData.filename}`;
+      await appendToSheet({
+        personalInfo: cvData.formatted.personalInfo,
+        education: cvData.formatted.education,
+        qualifications: cvData.formatted.qualifications,
+        projects: cvData.formatted.projects,
+        cvLink,
+      });
+
+      const res = await submitFormData(formData, cvData.raw);
       if (res !== "success") {
         setError("Failed to submit application");
         throw new Error("Failed to submit application");

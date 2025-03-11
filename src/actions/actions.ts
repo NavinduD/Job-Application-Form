@@ -1,5 +1,5 @@
 "use server";
-import { ParsedCV, FormData } from "@/types";
+import { ParsedCV, FormData, Projects } from "@/types";
 import { s3Client } from "../utils/cloudflareR2";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -20,21 +20,74 @@ export async function getPresignedUrl(key: string, contentType: string) {
   return signedUrl;
 }
 
+async function saveProjects(projects: Projects[]) {
+  return Promise.all(
+    (projects || []).map(async (project) => {
+      const newProject = new Project({
+        name: project.name,
+        description: project.description,
+      });
+      const savedProject = await newProject.save();
+      return savedProject._id;
+    })
+  );
+}
+
+async function notifyWebhook(
+  formData: FormData,
+  cvData: ParsedCV,
+  projectIds: string[]
+) {
+  return fetch("https://rnd-assignment.automations-3d6.workers.dev/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Candidate-Email": "r.l.t.n.rathnayaka@gmail.com",
+    },
+    body: JSON.stringify({
+      cv_data: {
+        personal_info: cvData.personalInfo,
+        education: cvData.education || [],
+        qualifications: cvData.qualifications || [],
+        projects: projectIds,
+        cv_public_link: `${process.env.NEXT_PUBLIC_CLOUDFLARE_URL}/${formData.filename}`,
+      },
+      metadata: {
+        applicant_name: formData.name,
+        email: formData.email,
+        status: "testing",
+        cv_processed: true,
+        processed_timestamp: new Date().toISOString(),
+      },
+    }),
+  });
+}
+
+async function sendConfirmationEmail(
+  resend: Resend,
+  email: string,
+  name: string
+) {
+  const oneDayFromNow = new Date(
+    Date.now() + 1000 * 60 * 60 * 24
+  ).toISOString();
+  return resend.emails.send({
+    from: "onboarding@resend.dev",
+    to: email,
+    subject: "Your Application is Received",
+    react: ConfirmationEmail({
+      applicantName: name.split(" ")[0],
+    }),
+    scheduledAt: oneDayFromNow,
+  });
+}
+
 export async function submitFormData(formData: FormData, cvData: ParsedCV) {
   try {
     await connectDB();
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    const projectIds = await Promise.all(
-      (cvData.projects || []).map(async (project) => {
-        const newProject = new Project({
-          name: project.name,
-          description: project.description,
-        });
-        const savedProject = await newProject.save();
-        return savedProject._id;
-      })
-    );
+    const projectIds = await saveProjects(cvData.projects);
 
     const applicant = new Applicant({
       name: formData.name,
@@ -48,43 +101,10 @@ export async function submitFormData(formData: FormData, cvData: ParsedCV) {
 
     const savedApplicant = await applicant.save();
 
-    await fetch("https://rnd-assignment.automations-3d6.workers.dev/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Candidate-Email": "r.l.t.n.rathnayaka@gmail.com",
-      },
-      body: JSON.stringify({
-        cv_data: {
-          personal_info: cvData.personalInfo,
-          education: cvData.education || [],
-          qualifications: cvData.qualifications || [],
-          projects: projectIds,
-          cv_public_link: `${process.env.NEXT_PUBLIC_CLOUDFLARE_URL}/${formData.filename}`,
-        },
-        metadata: {
-          applicant_name: formData.name,
-          email: formData.email,
-          status: "testing",
-          cv_processed: true,
-          processed_timestamp: new Date().toISOString(),
-        },
-      }),
-    });
-
-    const oneDayFromNow = new Date(
-      Date.now() + 1000 * 60 * 60 * 24
-    ).toISOString();
-
-    await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to: formData.email,
-      subject: "Your Application is Received",
-      react: ConfirmationEmail({
-        applicantName: formData.name.split(" ")[0],
-      }),
-      scheduledAt: oneDayFromNow,
-    });
+    await Promise.all([
+      notifyWebhook(formData, cvData, projectIds),
+      sendConfirmationEmail(resend, formData.email, formData.name),
+    ]);
 
     if (savedApplicant) {
       console.log("Applicant saved successfully");
